@@ -1,0 +1,58 @@
+version: '3.9'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: ./deploy/Dockerfile
+      target: prod
+    image: cooking_forum_backend:${COOKING_FORUM_BACKEND_VERSION:-latest}
+    restart: always
+    env_file:
+    - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      COOKING_FORUM_BACKEND_HOST: 0.0.0.0
+      COOKING_FORUM_BACKEND_DB_HOST: cooking_forum_backend-db
+      COOKING_FORUM_BACKEND_DB_PORT: 5432
+      COOKING_FORUM_BACKEND_DB_USER: cooking_forum_backend
+      COOKING_FORUM_BACKEND_DB_PASS: cooking_forum_backend
+      COOKING_FORUM_BACKEND_DB_BASE: cooking_forum_backend
+
+  db:
+    image: postgres:13.8-bullseye
+    hostname: cooking_forum_backend-db
+    environment:
+      POSTGRES_PASSWORD: "cooking_forum_backend"
+      POSTGRES_USER: "cooking_forum_backend"
+      POSTGRES_DB: "cooking_forum_backend"
+    volumes:
+    - cooking_forum_backend-db-data:/var/lib/postgresql/data
+    restart: always
+    healthcheck:
+      test: pg_isready -U cooking_forum_backend
+      interval: 2s
+      timeout: 3s
+      retries: 40
+
+  migrator:
+    image: cooking_forum_backend:${COOKING_FORUM_BACKEND_VERSION:-latest}
+    restart: "no"
+    command: alembic upgrade head
+    environment:
+      COOKING_FORUM_BACKEND_DB_HOST: cooking_forum_backend-db
+      COOKING_FORUM_BACKEND_DB_PORT: 5432
+      COOKING_FORUM_BACKEND_DB_USER: cooking_forum_backend
+      COOKING_FORUM_BACKEND_DB_PASS: cooking_forum_backend
+      COOKING_FORUM_BACKEND_DB_BASE: cooking_forum_backend
+    depends_on:
+      db:
+        condition: service_healthy
+
+
+
+volumes:
+  cooking_forum_backend-db-data:
+    name: cooking_forum_backend-db-data
