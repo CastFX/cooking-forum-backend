@@ -39,6 +39,8 @@ class Settings(BaseSettings):
 
     log_level: LogLevel = LogLevel.INFO
 
+    secret: str = "fake_secret_abcd1234"
+
     # Variables for the database
     db_host: str = "localhost"
     db_port: int = 5432
