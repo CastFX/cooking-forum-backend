@@ -35,7 +35,8 @@ class UserRepository:
             password=self.crypto_service.hash_password(password),
             two_fa_enabled=two_fa_enabled,
             created_at=created_at or datetime.utcnow(),
-        ),
+        )
+        
         self.session.add(user)
         await self.session.commit()
         await self.session.refresh(user)
