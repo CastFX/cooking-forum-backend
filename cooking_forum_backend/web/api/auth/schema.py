@@ -13,7 +13,6 @@ class UserDTO(BaseModel):
     id: int
     username: str
     email: str
-    password: str
     two_fa_enabled: bool
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
@@ -35,7 +34,8 @@ class ChallengeDTO(BaseModel):
     DTO for 2FA challenges.
     """
 
-    id: str
+    challenge_id: str
+    type: str
 
 
 class TokenDTO(BaseModel):
