@@ -1,16 +1,18 @@
 from datetime import datetime
 
-from sqlalchemy.orm import Mapped, mapped_column
+from typing import List, Optional
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql.sqltypes import Boolean, DateTime, String
 
 from cooking_forum_backend.db.base import Base
+from cooking_forum_backend.db.models.otp_model import OTPModel
 
 
 class UserModel(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    username: Mapped[str] = mapped_column(String(length=200))  # noqa: WPS432
+    username: Mapped[str] = mapped_column(String(length=200), unique=True, index=True)  # noqa: WPS432
     email: Mapped[str] = mapped_column(String(length=320))
     password: Mapped[str] = mapped_column(String(length=255))
     two_fa_enabled: Mapped[bool] = mapped_column(Boolean())
