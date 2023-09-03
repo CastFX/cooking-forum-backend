@@ -39,7 +39,10 @@ class Settings(BaseSettings):
 
     log_level: LogLevel = LogLevel.INFO
 
-    secret: str = "fake_secret_abcd1234"
+    jwt_secret: str = "fake_secret_abcd1234"
+    jwt_algorithm: str = "HS256"
+    jwt_expires_minutes: int = 15
+
 
     # Variables for the database
     db_host: str = "localhost"
