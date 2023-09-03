@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Union
 
 from fastapi import Depends
 from sqlalchemy import select
@@ -11,7 +11,7 @@ from cooking_forum_backend.services.crypto import CryptoService
 
 
 class UserRepository:
-    """Class for accessing user table."""
+    """Class for accessing users table."""
 
     def __init__(
         self,
@@ -28,24 +28,28 @@ class UserRepository:
         password: str,
         two_fa_enabled: bool,
         created_at: Optional[datetime] = None,
-    ) -> None:
-        self.session.add(
-            UserModel(
-                username=username,
-                email=email,
-                password=self.crypto_service.hash_password(password),
-                two_fa_enabled=two_fa_enabled,
-                created_at=created_at or datetime.utcnow(),
-            ),
+    ) -> UserModel:
+        user = UserModel(
+            username=username,
+            email=email,
+            password=self.crypto_service.hash_password(password),
+            two_fa_enabled=two_fa_enabled,
+            created_at=created_at or datetime.utcnow(),
+        ),
+        self.session.add(user)
+        await self.session.commit()
+        await self.session.refresh(user)
+
+        return user
+
+    async def get_by_username(self, username) -> UserModel:
+        results = await self.session.execute(
+            select(UserModel).where(UserModel.username == username),
         )
+        return results.scalar_one()
 
-    async def get_by_email(self, email) -> UserModel:
-        return await self.session.execute(
-            select(UserModel).where(UserModel.email == email),
-        ).scalar_one()
-
-    async def authenticate(self, email: str, password: str) -> False | UserModel:
-        user = await self.get_by_email(email)
+    async def authenticate(self, username: str, password: str) -> Union[bool, UserModel]:
+        user = await self.get_by_username(username)
         if not user:
             return False
 
