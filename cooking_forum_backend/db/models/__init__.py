@@ -10,5 +10,6 @@ def load_all_models() -> None:
         path=[str(package_dir)],
         prefix="cooking_forum_backend.db.models.",
     )
+
     for module in modules:
         __import__(module.name)  # noqa: WPS421
