@@ -43,7 +43,6 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expires_minutes: int = 15
 
-
     # Variables for the database
     db_host: str = "localhost"
     db_port: int = 5432

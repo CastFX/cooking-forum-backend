@@ -87,25 +87,6 @@ COOKING_FORUM_BACKEND_ENVIRONMENT="dev"
 
 You can read more about BaseSettings class here: https://pydantic-docs.helpmanual.io/usage/settings/
 
-## Pre-commit
-
-To install pre-commit simply run inside the shell:
-```bash
-pre-commit install
-```
-
-pre-commit is very useful to check your code before publishing it.
-It's configured using .pre-commit-config.yaml file.
-
-By default it runs:
-* black (formats your code);
-* mypy (validates types);
-* isort (sorts imports in all files);
-* flake8 (spots possible bugs);
-
-
-You can read more about pre-commit here: https://pre-commit.com/
-
 ## Migrations
 
 If you want to migrate your database, you should run following commands:
