@@ -1,8 +1,8 @@
-import datetime
+from datetime import datetime, timedelta
 import random
 from typing import Annotated, List
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, HTTPException, status
 from fastapi.param_functions import Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError
@@ -13,23 +13,26 @@ from cooking_forum_backend.db.repositories.user_repository import UserRepository
 from cooking_forum_backend.services.crypto import CryptoService
 from cooking_forum_backend.services.email_service import EmailService
 from cooking_forum_backend.web.api.auth.schema import (
-    ChallengeDTO,
+    OtpChecktDTO,
+    OtpDTO,
+    OtpRequestDTO,
     TokenDTO,
+    TokenRequestDTO,
     UserDTO,
     UserInputDTO,
 )
 
 router = APIRouter()
 
-
 async def get_user_by_credentials(
-    form_data: OAuth2PasswordRequestForm,
+    username: str,
+    password: str,
     with_2fa_requested: bool,
     user_repository: UserRepository,
 ):
     user = await user_repository.authenticate(
-        form_data.username,
-        form_data.password,
+        username,
+        password,
     )
 
     if not user:
@@ -106,12 +109,13 @@ async def register_user(
 
 @router.post("/token", response_model=TokenDTO)
 async def login(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    credentials: TokenRequestDTO,
     crypto_service: Annotated[CryptoService, Depends()],
     user_repository: Annotated[UserRepository, Depends()],
 ):
     user = await get_user_by_credentials(
-        form_data=form_data,
+        username=credentials.username,
+        password=credentials.password,
         with_2fa_requested=False,
         user_repository=user_repository,
     )
@@ -121,15 +125,16 @@ async def login(
 
 
 
-@router.post("/challenge/create", response_model=ChallengeDTO)
-async def create_challenge(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+@router.post("/token/otp/send", response_model=OtpDTO)
+async def send_otp(
+    credentials: OtpRequestDTO,
     otp_repository: Annotated[OTPRepository, Depends()],
     email_service: Annotated[EmailService, Depends()],
     user_repository: Annotated[UserRepository, Depends()],
 ):
     user = await get_user_by_credentials(
-        form_data=form_data,
+        username=credentials.username,
+        password=credentials.password,
         with_2fa_requested=True,
         user_repository=user_repository,
     )
@@ -137,22 +142,23 @@ async def create_challenge(
     otp = await otp_repository.create_otp(
         user_id=user.id,
         value=random.randint(100000, 999999),
-        expires_at=datetime.utcnow() + datetime.timedelta(minutes=15),
+        expires_at=datetime.utcnow() + timedelta(minutes=15),
     )
 
     await email_service.sendEmail(user.email, f"Your 2FA code is {otp.value}")
 
-    return {"challenge_id": otp.id, "type": "email"}
+    return {"otp_id": otp.id, "otp_type": "email"}
 
-@router.post("/challenge/verify", response_model=TokenDTO)
-async def login_with_2fa_challenge(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+@router.post("/token/otp/check", response_model=TokenDTO)
+async def login_with_otp(
+    credentials: OtpChecktDTO,
     crypto_service: Annotated[CryptoService, Depends()],
     otp_repository: Annotated[OTPRepository, Depends()],
     user_repository: Annotated[UserRepository, Depends()],
 ):
     user = await get_user_by_credentials(
-        form_data=form_data,
+        username=credentials.username,
+        password=credentials.password,
         with_2fa_requested=True,
         user_repository=user_repository,
     )

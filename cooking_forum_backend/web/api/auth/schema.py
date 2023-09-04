@@ -1,4 +1,6 @@
 from datetime import datetime
+from typing import Annotated
+from attr import dataclass
 
 from pydantic import BaseModel, ConfigDict
 
@@ -29,13 +31,13 @@ class UserInputDTO(BaseModel):
     two_fa_enabled: bool
 
 
-class ChallengeDTO(BaseModel):
+class OtpDTO(BaseModel):
     """
     DTO for 2FA challenges.
     """
 
-    challenge_id: str
-    type: str
+    otp_id: int
+    otp_type: str
 
 
 class TokenDTO(BaseModel):
@@ -45,3 +47,14 @@ class TokenDTO(BaseModel):
 
     access_token: str
     token_type: str
+
+class TokenRequestDTO(BaseModel):
+    username: str
+    password: str
+
+class OtpRequestDTO(TokenRequestDTO):
+    pass
+
+class OtpChecktDTO(TokenRequestDTO):
+    otp_id: int
+    otp_value: int
