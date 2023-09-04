@@ -5,7 +5,6 @@ from fastapi import FastAPI
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
-from cooking_forum_backend.db.repositories import user_repository
 
 from cooking_forum_backend.db.repositories.user_repository import UserRepository
 from cooking_forum_backend.services.crypto import CryptoService
@@ -35,7 +34,7 @@ async def test_login_without_2fa_successfully(
 
     response = await client.post(
         url,
-        json={ 
+        data={ 
             "username": test_name,
             "password": test_password,
         },
@@ -71,10 +70,9 @@ async def test_login_with_2fa_unauthorized(
     #OAuth2 uses form_data, not json
     response = await client.post(
         url,
-        json={ 
+        data={ 
             "username": test_name,
             "password": test_password,
         },
     )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
-

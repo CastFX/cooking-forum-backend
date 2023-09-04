@@ -1,6 +1,5 @@
 from datetime import datetime
 from typing import Optional
-from certifi import where
 
 from fastapi import Depends
 from sqlalchemy import select, update
@@ -44,9 +43,13 @@ class OTPRepository:
                 .order_by(OTPModel.expires_at.desc())
         )
 
-        return results.scalar_one()
+        return results.scalar_one_or_none()
     
-    async def set_used_at(self, otp_id: int, used_at: Optional[datetime]) -> OTPModel:
+    async def set_used_at(
+        self,
+        otp_id: int,
+        used_at: Optional[datetime] = None
+    ) -> OTPModel:
         return await self.session.execute(
             update(OTPModel)
                 .values(used_at=used_at or datetime.now())

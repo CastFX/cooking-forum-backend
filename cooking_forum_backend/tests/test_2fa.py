@@ -37,7 +37,7 @@ async def test_otp_send_without_2FA_enabled(
 
     response = await client.post(
         url,
-        json={
+        data={
             "username": test_name,
             "password": test_password,
         },
@@ -66,7 +66,7 @@ async def test_otp_send_with_2FA(
     )
     response = await client.post(
         url,
-        json={
+        data={
             "username": test_name,
             "password": test_password,
         },
@@ -101,7 +101,7 @@ async def test_otp_check_successful(
     )
     send_response = await client.post(
         fastapi_app.url_path_for("send_otp"),
-        json={
+        data={
             "username": test_name,
             "password": test_password,
         },
@@ -110,13 +110,13 @@ async def test_otp_check_successful(
     data = send_response.json()
 
     otp = await otp_repository.get_active_by_user_id(user.id)
-
+    
     verify_response = await client.post(
         fastapi_app.url_path_for("login_with_otp"),
-        json={
+        data={
             "username": test_name,
             "password": test_password,
-            "opt_id": data['otp_id'],
+            "otp_id": data['otp_id'],
             "otp_value": otp.value
         },
     )
@@ -148,7 +148,7 @@ async def test_otp_check_failure(
     )
     send_response = await client.post(
         fastapi_app.url_path_for("send_otp"),
-        json={
+        data={
             "username": test_name,
             "password": test_password,
         },
@@ -160,10 +160,10 @@ async def test_otp_check_failure(
 
     verify_response = await client.post(
         fastapi_app.url_path_for("login_with_otp"),
-        json={
+        data={
             "username": test_name,
             "password": test_password,
-            "opt_id": data['otp_id'] + 1, #wrong otp_id
+            "otp_id": data['otp_id'] + 1, #wrong otp_id
             "otp_value": otp.value
         },
     )
@@ -172,10 +172,10 @@ async def test_otp_check_failure(
 
     verify_response = await client.post(
         fastapi_app.url_path_for("login_with_otp"),
-        json={
+        data={
             "username": test_name,
             "password": test_password,
-            "opt_id": data['otp_id'],
+            "otp_id": data['otp_id'],
             "otp_value": otp.value + 1 #wrong otp_value
         },
     )
@@ -184,6 +184,60 @@ async def test_otp_check_failure(
 
 
 
+@pytest.mark.anyio
+async def test_otp_usable_only_once(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    dbsession: AsyncSession,
+) -> None:
+    """Tests 2fa login with OTP for email."""
+    user_repository = UserRepository(dbsession, CryptoService())
+    otp_repository = OTPRepository(dbsession)
+    
+    test_name = uuid.uuid4().hex
+    test_password = uuid.uuid4().hex
+
+    user = await user_repository.create_user_model(
+        username=test_name,
+        email=test_name + "@email.com",
+        password=test_password,
+        two_fa_enabled=True,
+    )
+    send_response = await client.post(
+        fastapi_app.url_path_for("send_otp"),
+        data={
+            "username": test_name,
+            "password": test_password,
+        },
+    )
+    assert send_response.status_code == status.HTTP_200_OK
+    data = send_response.json()
+
+    otp = await otp_repository.get_active_by_user_id(user.id)
+    
+    verify_response = await client.post(
+        fastapi_app.url_path_for("login_with_otp"),
+        data={
+            "username": test_name,
+            "password": test_password,
+            "otp_id": data['otp_id'],
+            "otp_value": otp.value
+        },
+    )
+
+    assert verify_response.status_code == status.HTTP_200_OK
+
+    verify_response = await client.post(
+        fastapi_app.url_path_for("login_with_otp"),
+        data={
+            "username": test_name,
+            "password": test_password,
+            "otp_id": data['otp_id'],
+            "otp_value": otp.value
+        },
+    )
+
+    assert verify_response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 

@@ -13,7 +13,7 @@ from cooking_forum_backend.db.repositories.user_repository import UserRepository
 from cooking_forum_backend.services.crypto import CryptoService
 from cooking_forum_backend.services.email_service import EmailService
 from cooking_forum_backend.web.api.auth.schema import (
-    OtpChecktDTO,
+    OtpCheckDTO,
     OtpDTO,
     OtpRequestDTO,
     TokenDTO,
@@ -61,7 +61,7 @@ async def get_user_by_credentials(
 
 
 async def get_current_user(
-    token: Annotated[str, Depends(OAuth2PasswordBearer(tokenUrl="token"))],
+    token: Annotated[str, Depends(OAuth2PasswordBearer(tokenUrl="/api/token"))],
     crypto_service: Annotated[CryptoService, Depends()],
     user_repository: Annotated[UserRepository, Depends()],
 ):
@@ -86,30 +86,39 @@ async def get_current_user(
     return user
 
 
-@router.post("/register", response_model=UserDTO)
+@router.post(
+    "/register",
+    summary="Register a new user into the forum",
+    response_model=UserDTO
+)
 async def register_user(
-    new_user_object: UserInputDTO,
+    new_user: UserInputDTO,
     user_repository: Annotated[UserRepository, Depends()],
 ):
     """
     Creates user model in the database.
 
-    :param new_user_object: new user model item.
+    :param new_user: new user model item.
     :param user_repository: DAO for user models.
     """
     user = await user_repository.create_user_model(
-        username=new_user_object.username,
-        email=new_user_object.email,
-        password=new_user_object.password,
-        two_fa_enabled=new_user_object.two_fa_enabled,
+        username=new_user.username,
+        email=new_user.email,
+        password=new_user.password,
+        two_fa_enabled=new_user.two_fa_enabled,
     )
 
     return UserDTO.model_validate(user)
 
 
-@router.post("/token", response_model=TokenDTO)
+@router.post(
+    "/token",
+    summary="OAuth2 login, password flow. If user has 2FA enabled, it will respond 401: use /token/otp/send",
+    response_description="A JWT access token if successful, 401 otherwise",
+    response_model=TokenDTO,
+)
 async def login(
-    credentials: TokenRequestDTO,
+    credentials: Annotated[TokenRequestDTO, Depends()],
     crypto_service: Annotated[CryptoService, Depends()],
     user_repository: Annotated[UserRepository, Depends()],
 ):
@@ -125,9 +134,14 @@ async def login(
 
 
 
-@router.post("/token/otp/send", response_model=OtpDTO)
+@router.post(
+    "/token/otp/send",
+    summary="OAuth2 login, password flow, OTP request. It sends an otp to the user's email.",
+    response_description="Returns the otp_id that needs to be used in /token/otp/check",
+    response_model=OtpDTO
+)
 async def send_otp(
-    credentials: OtpRequestDTO,
+    credentials: Annotated[OtpRequestDTO, Depends()],
     otp_repository: Annotated[OTPRepository, Depends()],
     email_service: Annotated[EmailService, Depends()],
     user_repository: Annotated[UserRepository, Depends()],
@@ -149,9 +163,14 @@ async def send_otp(
 
     return {"otp_id": otp.id, "otp_type": "email"}
 
-@router.post("/token/otp/check", response_model=TokenDTO)
+@router.post(
+    "/token/otp/check",
+    summary="OAuth2 login, password flow, OTP check. It verifies the otp_value sent to the user, along with the otp_id obtained in /token/otp/send.",
+    response_description="A JWT access token if successful, 401 otherwise",
+    response_model=TokenDTO
+)
 async def login_with_otp(
-    credentials: OtpChecktDTO,
+    credentials: Annotated[OtpCheckDTO, Depends()],
     crypto_service: Annotated[CryptoService, Depends()],
     otp_repository: Annotated[OTPRepository, Depends()],
     user_repository: Annotated[UserRepository, Depends()],
@@ -168,7 +187,15 @@ async def login_with_otp(
     if not otp:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid otp id",
+            detail="OTP Not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    
+    if otp.id != credentials.otp_id or otp.value != credentials.otp_value:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid OTP",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
