@@ -40,7 +40,7 @@ class OTPRepository:
             select(OTPModel)
                 .where(OTPModel.user_id == user_id)
                 .where(OTPModel.expires_at > datetime.utcnow())
-                .where(OTPModel.used_at is None)
+                .where(OTPModel.used_at == None)
                 .order_by(OTPModel.expires_at.desc())
         )
 

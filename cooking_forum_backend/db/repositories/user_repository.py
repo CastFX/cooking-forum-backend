@@ -47,7 +47,7 @@ class UserRepository:
         results = await self.session.execute(
             select(UserModel).where(UserModel.username == username),
         )
-        return results.scalar_one()
+        return results.scalar_one_or_none()
     
     async def get_all_users(self, limit: int, offset: int) -> List[UserModel]:
         """
