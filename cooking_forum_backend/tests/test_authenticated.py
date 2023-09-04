@@ -53,6 +53,7 @@ async def test_authenticated_user_can_get_self(
     assert data["id"] == user.id
     assert data["username"] == user.username
     assert data["email"] == user.email
+    assert "password" not in data
 
 @pytest.mark.anyio
 async def test_unauthenticated_user_cannot_get_self(
@@ -82,5 +83,43 @@ async def test_unauthenticated_user_cannot_get_self(
     )
 
     assert me_response.status_code == status.HTTP_401_UNAUTHORIZED
+
+@pytest.mark.anyio
+async def test_unauthenticated_user_can_get_list(
+    fastapi_app: FastAPI,
+    client: AsyncClient,
+    dbsession: AsyncSession,
+) -> None:
+    """Tests missing authentication of user."""
+    crypto_service = CryptoService()
+    repository = UserRepository(dbsession, crypto_service)
+
+    test_name = uuid.uuid4().hex
+    test_password = uuid.uuid4().hex
+
+    user = await repository.create_user_model(
+        username=test_name,
+        email=test_name + "@email.com",
+        password=test_password,
+        two_fa_enabled=False,
+    )
+
+    all_users_response = await client.get(
+        fastapi_app.url_path_for("get_users"),
+        headers={
+            "Authorization": "None"
+        }
+    )
+
+    assert all_users_response.status_code == status.HTTP_200_OK
+    data = all_users_response.json()
+    assert len(data) == 1
+    assert data[0]['id'] == user.id
+    assert data[0]['username'] == user.username
+    assert data[0]['email'] == user.email
+    assert 'password' not in data[0]
+    assert CryptoService().check_password(test_password, user.password)
+
+
 
 
