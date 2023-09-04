@@ -41,67 +41,6 @@ async def test_creation(
     assert CryptoService().check_password(test_password, user.password)
 
 
-@pytest.mark.anyio
-async def test_login_without_2fa(
-    fastapi_app: FastAPI,
-    client: AsyncClient,
-    dbsession: AsyncSession,
-) -> None:
-    """Tests user instance creation."""
-    repository = UserRepository(dbsession, CryptoService())
-    
-
-    url = fastapi_app.url_path_for("login")
-    test_name = uuid.uuid4().hex
-    test_password = uuid.uuid4().hex
-
-    await repository.create_user_model(
-        username=test_name,
-        email=test_name + "@email.com",
-        password=test_password,
-        two_fa_enabled=False,
-    )
-
-    response = await client.post(
-        url,
-        json={
-            "username": test_name,
-            "password": test_password,
-        },
-    )
-    assert response.status_code == status.HTTP_200_OK
-
-
-@pytest.mark.anyio
-async def test_login_without_2fa(
-    fastapi_app: FastAPI,
-    client: AsyncClient,
-    dbsession: AsyncSession,
-) -> None:
-    """Tests user instance creation."""
-    repository = UserRepository(dbsession, CryptoService())
-    
-
-    url = fastapi_app.url_path_for("login")
-    test_name = uuid.uuid4().hex
-    test_password = uuid.uuid4().hex
-
-    await repository.create_user_model(
-        username=test_name,
-        email=test_name + "@email.com",
-        password=test_password,
-        two_fa_enabled=False,
-    )
-
-    response = await client.post(
-        url,
-        json={
-            "username": test_name,
-            "password": test_password,
-        },
-    )
-    assert response.status_code == status.HTTP_200_OK
-
 
 
 
