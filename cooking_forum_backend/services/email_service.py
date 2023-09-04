@@ -1,3 +1,3 @@
 class EmailService:
     async def sendEmail(self, email, content):
-        pass
+        print(f"To: {email}, content: {content}")
