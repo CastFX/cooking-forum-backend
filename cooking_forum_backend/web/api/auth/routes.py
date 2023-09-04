@@ -205,14 +205,22 @@ async def login_with_otp(
 
     return {"access_token": access_token, "token_type": "bearer"}
 
-@router.get("/users/me", response_model=UserDTO)
+@router.get(
+    "/users/me",
+    summary="Get current logged user",
+    response_model=UserDTO
+)
 async def me(
     current_user: Annotated[UserModel, Depends(get_current_user)],
 ):
     return UserDTO.model_validate(current_user)
 
 
-@router.get("/users/", response_model=List[UserDTO])
+@router.get(
+    "/users/",
+    summary="Get all users, does not require authentication",
+    response_model=List[UserDTO]
+)
 async def get_users(
     user_repository: Annotated[UserRepository, Depends()],
     limit: int = 10,

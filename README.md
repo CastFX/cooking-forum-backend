@@ -1,6 +1,22 @@
 # cooking_forum_backend
 
-This project was generated using fastapi_template.
+This project used fastapi_template to speed up implementation.
+It has 6 endpoints
+
+`/api/register` Register a new user into the forum
+
+`/api/token` OAuth2 login, password flow. If user has 2FA enabled, it will respond 401: use /api/token/otp/send
+
+`/api/token/otp/send` OAuth2 login, password flow, OTP request. It sends an otp to the user's email.
+
+`/api/token/otp/check` OAuth2 login, password flow, OTP check. It verifies the otp_value sent to the user, along with the otp_id obtained in /api/token/otp/send.
+
+`/api/users/me` Returns the currently logged user
+
+`/api/users/` Returns all the users, does not require authentication
+
+`/api/heath` Just a simple application healthcheck
+
 
 ## Poetry
 
@@ -83,6 +99,7 @@ An example of .env file:
 COOKING_FORUM_BACKEND_RELOAD="True"
 COOKING_FORUM_BACKEND_PORT="8000"
 COOKING_FORUM_BACKEND_ENVIRONMENT="dev"
+COOKING_FORUM_BACKEND_JWT_SECRET = "FAKE_SECRET_DO_NOT_USE_IN_PROD"
 ```
 
 You can read more about BaseSettings class here: https://pydantic-docs.helpmanual.io/usage/settings/
@@ -143,3 +160,8 @@ docker run -p "5432:5432" -e "POSTGRES_PASSWORD=cooking_forum_backend" -e "POSTG
 ```bash
 pytest -vv .
 ```
+
+## Docs
+Docs for the endpoints are available at http://0.0.0.0:8000/api/docs#/ after running the project locally
+
+There you can also test http endpoints singularly and it also supports authentication with JWT
