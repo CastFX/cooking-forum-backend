@@ -1,6 +1,6 @@
 import datetime
 import random
-from typing import Annotated
+from typing import Annotated, List
 
 from fastapi import APIRouter, HTTPException, Response, status
 from fastapi.param_functions import Depends
@@ -25,7 +25,7 @@ router = APIRouter()
 async def get_user_by_credentials(
     form_data: OAuth2PasswordRequestForm,
     with_2fa_requested: bool,
-    user_repository: UserRepository = Depends(),
+    user_repository: UserRepository,
 ):
     user = await user_repository.authenticate(
         form_data.username,
@@ -108,10 +108,12 @@ async def register_user(
 async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     crypto_service: Annotated[CryptoService, Depends()],
+    user_repository: Annotated[UserRepository, Depends()],
 ):
     user = await get_user_by_credentials(
         form_data=form_data,
         with_2fa_requested=False,
+        user_repository=user_repository,
     )
     access_token = crypto_service.create_access_token({"sub": user.username})
 
@@ -124,10 +126,12 @@ async def create_challenge(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     otp_repository: Annotated[OTPRepository, Depends()],
     email_service: Annotated[EmailService, Depends()],
+    user_repository: Annotated[UserRepository, Depends()],
 ):
     user = await get_user_by_credentials(
         form_data=form_data,
         with_2fa_requested=True,
+        user_repository=user_repository,
     )
 
     otp = await otp_repository.create_otp(
@@ -145,10 +149,12 @@ async def login_with_2fa_challenge(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     crypto_service: Annotated[CryptoService, Depends()],
     otp_repository: Annotated[OTPRepository, Depends()],
+    user_repository: Annotated[UserRepository, Depends()],
 ):
     user = await get_user_by_credentials(
         form_data=form_data,
         with_2fa_requested=True,
+        user_repository=user_repository,
     )
 
     otp = await otp_repository.get_active_by_user_id(user.id)
@@ -166,8 +172,25 @@ async def login_with_2fa_challenge(
 
     return {"access_token": access_token, "token_type": "bearer"}
 
-@router.get("/me", response_model=UserDTO)
+@router.get("/users/me", response_model=UserDTO)
 async def me(
     current_user: Annotated[UserModel, Depends(get_current_user)],
 ):
     return UserDTO.model_validate(current_user)
+
+
+@router.get("/users/", response_model=List[UserDTO])
+async def get_users(
+    user_repository: Annotated[UserRepository, Depends()],
+    limit: int = 10,
+    offset: int = 0,
+) -> List[UserModel]:
+    """
+    Retrieve all users objects from the database.
+
+    :param limit: limit of users objects, defaults to 10.
+    :param offset: offset of users objects, defaults to 0.
+    :param users_dao: DAO for users models.
+    :return: list of users objects from database.
+    """
+    return await user_repository.get_all_users(limit=limit, offset=offset)

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 from fastapi import Depends
 from sqlalchemy import select
@@ -48,6 +48,20 @@ class UserRepository:
             select(UserModel).where(UserModel.username == username),
         )
         return results.scalar_one()
+    
+    async def get_all_users(self, limit: int, offset: int) -> List[UserModel]:
+        """
+        Get all user models with limit/offset pagination.
+
+        :param limit: limit of users.
+        :param offset: offset of users.
+        :return: stream of users.
+        """
+        raw_users = await self.session.execute(
+            select(UserModel).limit(limit).offset(offset),
+        )
+
+        return list(raw_users.scalars().fetchall())
 
     async def authenticate(self, username: str, password: str) -> Union[bool, UserModel]:
         user = await self.get_by_username(username)
