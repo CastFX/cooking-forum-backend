@@ -37,7 +37,7 @@ async def test_creation(
     assert user.username == test_name
     assert user.email == test_email
     assert user.password != test_password
-    assert user.two_fa_enabled == False
+    assert user.two_fa_enabled is False
     assert CryptoService().check_password(test_password, user.password)
 
 
